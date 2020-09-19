@@ -29,9 +29,9 @@ def companies_by_sectors(sector_link):
     dict_companies.pop("Slide Show")
     return dict_companies
 
-def get_financials(dict_companies):
+def get_income(dict_companies):
     driver = webdriver.Chrome('D:/fundaStorm/fundaStorm/chromedriver_win32/chromedriver.exe')
-    x=driver.get('https://www.moneycontrol.com/india/stockpricequote/computers-software/tataconsultancyservices/TCS')
+    driver.get('https://www.moneycontrol.com/india/stockpricequote/computers-software/tataconsultancyservices/TCS')
     time_period=driver.find_elements_by_class_name('cIncomeStmt')
     for time in time_period:
         count=0
@@ -53,9 +53,39 @@ def get_financials(dict_companies):
     # print(cp[0])
     driver.close()
     
+def get_balance(choose , options):
 
+    driver = webdriver.Chrome('D:/fundaStorm/fundaStorm/chromedriver_win32/chromedriver.exe')
+    driver.get('https://www.moneycontrol.com/india/stockpricequote/computers-software/tataconsultancyservices/TCS')
+    count=0
+    while count< 10:
+        try:
+            driver.find_element_by_xpath(options[choose]).click()
+        except:
+            pass
+        count+=1
 
+    tbl_class=driver.find_elements_by_id(choose)
+    
+    # for tbl in tbl_class:
+    #     fin_tbl=tbl.find_element_by_xpath('//*[@id="BalanceSheet"]/div[1]/div/table').get_attribute('outerHTML')
+
+    for table in tbl_class:
+        try:
+            df  = pd.read_html(table.get_attribute('outerHTML'))  
+        except:
+            print(table.get_attribute('outerHTML'))
+    print(df)
+    driver.close()
+    
+
+    
 if __name__ == "__main__":
     dict_sectors=get_sectors("Airlines")
-    dict_companies =companies_by_sectors(dict_sectors)
-    get_financials(dict_companies)
+    # dict_companies =companies_by_sectors(dict_sectors)
+
+    options={'BalanceSheet' : '//*[@id="Consolidated_finance"]/div/div[1]/ul/li[2]/a' , 
+            'CashFlows' : '//*[@id="Consolidated_finance"]/div/div[1]/ul/li[3]/a',
+            'Ratios' : '//*[@id="Consolidated_finance"]/div/div[1]/ul/li[4]/a'}
+    get_balance('BalanceSheet',options)
+
