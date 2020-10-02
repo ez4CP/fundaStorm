@@ -4,7 +4,7 @@ from collections import defaultdict
 import pandas as pd
 from selenium import webdriver
 from firebase import firebase
-
+import os
 
 ####### Note:- IN CASE, CODE IS UNABLE TO RETRIEVE SECTORS AND COMPANIES, USE THE COMMENTED CODE BELOW.
 
@@ -82,10 +82,18 @@ def companies_by_sectors(sector_link):
     return dict_companies
 
 
-
-
-def get_income(company_link):
+def initiate_driver_link(company_link):
     driver = webdriver.Chrome('D:/fundaStorm/fundaStorm/chromedriver_win32/chromedriver.exe')
+    driver.get(company_link)
+    return driver
+
+def get_income( company_link, choose, options):
+    chrome_options = webdriver.ChromeOptions()
+    # chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument('headless')
+    chrome_options.add_argument('window-size=1200x600')
+    driver = webdriver.Chrome('D:/fundaStorm/fundaStorm/chromedriver_win32/chromedriver.exe',chrome_options=chrome_options)
+    # driver = webdriver.Chrome('D:/fundaStorm/fundaStorm/chromedriver_win32/chromedriver.exe')
     driver.get(company_link)
     time_period=driver.find_elements_by_class_name('cIncomeStmt')
     for time in time_period:
@@ -99,25 +107,32 @@ def get_income(company_link):
             count+=1
     try:
         tbl_class=driver.find_elements_by_class_name('clearfix.MB20')
-        driver.implicitly_wait(45)
+        # driver.implicitly_wait(45)
         for tbl in tbl_class:
             fin_tbl=tbl.find_element_by_xpath('//*[@id="IncomeStatement"]/div[2]/div/table').get_attribute('outerHTML')
         df  = pd.read_html(fin_tbl)  
         for i in df:
             i=i.to_dict()
-            return i
 
     except:
         print("Company has stopped functioning")
     # cp=pd.read_html(x,attrs={'class': 'mctable1 thborder frtab'})
     # print(cp[0])
-    driver.close()
-    return defaultdict()
+        i = defaultdict()
     
-def get_balance(choose , options,company_link):
+    options={'BalanceSheet' : '//*[@id="Consolidated_finance"]/div/div[1]/ul/li[2]/a' , 
+             'CashFlows' : '//*[@id="Consolidated_finance"]/div/div[1]/ul/li[3]/a',
+             'Ratios' : '//*[@id="Consolidated_finance"]/div/div[1]/ul/li[4]/a'}
 
-    driver = webdriver.Chrome('D:/fundaStorm/fundaStorm/chromedriver_win32/chromedriver.exe')
-    driver.get(company_link)
+    ratio=get_balance(driver,'Ratios',options, company_link)
+    balance_sheet_data=get_balance(driver,'BalanceSheet',options, company_link)
+
+    cash_flow=get_balance(driver,'CashFlows',options, company_link)
+    driver.close()
+    return i,ratio,balance_sheet_data,cash_flow
+    
+def get_balance(driver, choose , options,company_link):
+
     count=0
     while count< 10:
         try:
@@ -134,13 +149,17 @@ def get_balance(choose , options,company_link):
     for table in tbl_class:
         try:
             df  = pd.read_html(table.get_attribute('outerHTML')) 
+            temp_df=pd.DataFrame()
             for d in df:
-                print(d.to_dict())
+                temp_df = temp_df.append(d, ignore_index=True)
+            rb_data=temp_df.to_dict()
+
         except:
             print("Company not found")
+            rb_data=defaultdict()
     
-    driver.close()
     
+    return rb_data
 
     
 # if __name__ == "__main__":
